@@ -1,36 +1,35 @@
 /*
  Copyright (C) 2018 Apple Inc. All Rights Reserved.
  See LICENSE.txt for this sample’s licensing information
- 
+
  Abstract:
  This class manages the main character, including its animations, sounds and direction.
-*/
+ */
 
 import Foundation
 import SceneKit
 import simd
 
 // Returns plane / ray intersection distance from ray origin.
-func planeIntersect(planeNormal: float3, planeDist: Float, rayOrigin: float3, rayDirection: float3) -> Float {
+func planeIntersect(planeNormal: SIMD3<Float>, planeDist: Float, rayOrigin: SIMD3<Float>, rayDirection: SIMD3<Float>) -> Float {
     return (planeDist - simd_dot(planeNormal, rayOrigin)) / simd_dot(planeNormal, rayDirection)
 }
 
 class Character: NSObject {
-    
-    static private let speedFactor: CGFloat = 2.0
-    static private let stepsCount = 10
+    private static let speedFactor: CGFloat = 2.0
+    private static let stepsCount = 10
 
-    static private let initialPosition = float3(0.1, -0.2, 0)
-    
+    private static let initialPosition = SIMD3<Float>(0.1, -0.2, 0)
+
     // some constants
-    static private let gravity = Float(0.004)
-    static private let jumpImpulse = Float(0.1)
-    static private let minAltitude = Float(-10)
-    static private let enableFootStepSound = true
-    static private let collisionMargin = Float(0.04)
-    static private let modelOffset = float3(0, -collisionMargin, 0)
-    static private let collisionMeshBitMask = 8
-    
+    private static let gravity = Float(0.004)
+    private static let jumpImpulse = Float(0.1)
+    private static let minAltitude = Float(-10)
+    private static let enableFootStepSound = true
+    private static let collisionMargin = Float(0.04)
+    private static let modelOffset = SIMD3<Float>(0, -collisionMargin, 0)
+    private static let collisionMeshBitMask = 8
+
     enum GroundType: Int {
         case grass
         case rock
@@ -38,39 +37,39 @@ class Character: NSObject {
         case inTheAir
         case count
     }
-    
+
     // Character handle
     private var characterNode: SCNNode! // top level node
     private var characterOrientation: SCNNode! // the node to rotate to orient the character
     private var model: SCNNode! // the model loaded from the character file
-    
+
     // Physics
     private var characterCollisionShape: SCNPhysicsShape?
-    private var collisionShapeOffsetFromModel = float3.zero
+    private var collisionShapeOffsetFromModel = SIMD3<Float>.zero
     private var downwardAcceleration: Float = 0
-    
+
     // Jump
     private var controllerJump: Bool = false
     private var jumpState: Int = 0
     private var groundNode: SCNNode?
-    private var groundNodeLastPosition = float3.zero
+    private var groundNodeLastPosition = SIMD3<Float>.zero
     var baseAltitude: Float = 0
     private var targetAltitude: Float = 0
-    
+
     // void playing the step sound too often
     private var lastStepFrame: Int = 0
     private var frameCounter: Int = 0
-    
+
     // Direction
     private var previousUpdateTime: TimeInterval = 0
-    private var controllerDirection = float2.zero
-    
+    private var controllerDirection = SIMD2<Float>.zero
+
     // states
     private var attackCount: Int = 0
     private var lastHitTime: TimeInterval = 0
-    
+
     private var shouldResetCharacterPosition = false
-    
+
     // Particle systems
     private var jumpDustParticle: SCNParticleSystem!
     private var fireEmitter: SCNParticleSystem!
@@ -94,17 +93,18 @@ class Character: NSObject {
     private var catchFireSound: SCNAudioSource!
     private var jumpSound: SCNAudioSource!
     private var attackSound: SCNAudioSource!
-    private var steps = [SCNAudioSource](repeating: SCNAudioSource(), count: Character.stepsCount )
-    
+    private var steps = [SCNAudioSource](repeating: SCNAudioSource(), count: Character.stepsCount)
+
     private(set) var offsetedMark: SCNNode?
-    
+
     // actions
     var isJump: Bool = false
-    var direction = float2()
+    var direction = SIMD2<Float>()
     var physicsWorld: SCNPhysicsWorld?
-    
+
     // MARK: - Initialization
-    init(scene: SCNScene) {
+
+    init(scene _: SCNScene) {
         super.init()
 
         loadCharacter()
@@ -115,8 +115,8 @@ class Character: NSObject {
 
     private func loadCharacter() {
         /// Load character from external file
-        let scene = SCNScene( named: "Art.scnassets/character/max.scn")!
-        model = scene.rootNode.childNode( withName: "Max_rootNode", recursively: true)
+        let scene = SCNScene(named: "Art.scnassets/character/max.scn")!
+        model = scene.rootNode.childNode(withName: "Max_rootNode", recursively: true)
         model.simdPosition = Character.modelOffset
 
         /* setup character hierarchy
@@ -133,7 +133,7 @@ class Character: NSObject {
         characterOrientation.addChildNode(model)
 
         let collider = model.childNode(withName: "collider", recursively: true)!
-        collider.physicsBody?.collisionBitMask = Int(([ .enemy, .trigger, .collectable ] as Bitmask).rawValue)
+        collider.physicsBody?.collisionBitMask = Int(([.enemy, .trigger, .collectable] as Bitmask).rawValue)
 
         // Setup collision shape
         let (min, max) = model.boundingBox
@@ -141,16 +141,16 @@ class Character: NSObject {
         let collisionCapsuleHeight = CGFloat(max.y - min.y)
 
         let collisionGeometry = SCNCapsule(capRadius: collisionCapsuleRadius, height: collisionCapsuleHeight)
-        characterCollisionShape = SCNPhysicsShape(geometry: collisionGeometry, options:[.collisionMargin: Character.collisionMargin])
-        collisionShapeOffsetFromModel = float3(0, Float(collisionCapsuleHeight) * 0.51, 0.0)
+        characterCollisionShape = SCNPhysicsShape(geometry: collisionGeometry, options: [.collisionMargin: Character.collisionMargin])
+        collisionShapeOffsetFromModel = SIMD3<Float>(0, Float(collisionCapsuleHeight) * 0.51, 0.0)
     }
 
     private func loadParticles() {
-        var particleScene = SCNScene( named: "Art.scnassets/character/jump_dust.scn")!
+        var particleScene = SCNScene(named: "Art.scnassets/character/jump_dust.scn")!
         let particleNode = particleScene.rootNode.childNode(withName: "particle", recursively: true)!
         jumpDustParticle = particleNode.particleSystems!.first!
 
-        particleScene = SCNScene( named: "Art.scnassets/particles/burn.scn")!
+        particleScene = SCNScene(named: "Art.scnassets/particles/burn.scn")!
         let burnParticleNode = particleScene.rootNode.childNode(withName: "particles", recursively: true)!
 
         let particleEmitter = SCNNode()
@@ -168,7 +168,7 @@ class Character: NSObject {
         whiteSmokeEmitterBirthRate = whiteSmokeEmitter.birthRate
         whiteSmokeEmitter.birthRate = 0
 
-        particleScene = SCNScene(named:"Art.scnassets/particles/particles_spin.scn")!
+        particleScene = SCNScene(named: "Art.scnassets/particles/particles_spin.scn")!
         spinParticle = (particleScene.rootNode.childNode(withName: "particles_spin", recursively: true)?.particleSystems?.first!)!
         spinCircleParticle = (particleScene.rootNode.childNode(withName: "particles_spin_circle", recursively: true)?.particleSystems?.first!)!
 
@@ -181,7 +181,7 @@ class Character: NSObject {
     }
 
     private func loadSounds() {
-        aahSound = SCNAudioSource( named: "audio/aah_extinction.mp3")!
+        aahSound = SCNAudioSource(named: "audio/aah_extinction.mp3")!
         aahSound.volume = 1.0
         aahSound.isPositional = false
         aahSound.load()
@@ -221,7 +221,7 @@ class Character: NSObject {
         attackSound.isPositional = false
         attackSound.load()
 
-        for i in 0..<Character.stepsCount {
+        for i in 0 ..< Character.stepsCount {
             steps[i] = SCNAudioSource(named: "audio/Step_rock_0\(UInt32(i)).mp3")!
             steps[i].volume = 0.5
             steps[i].isPositional = false
@@ -241,7 +241,7 @@ class Character: NSObject {
         if Character.enableFootStepSound {
             walkAnimation.animation.animationEvents = [
                 SCNAnimationEvent(keyTime: 0.1, block: { _, _, _ in self.playFootStep() }),
-                SCNAnimationEvent(keyTime: 0.6, block: { _, _, _ in self.playFootStep() })
+                SCNAnimationEvent(keyTime: 0.6, block: { _, _, _ in self.playFootStep() }),
             ]
         }
         model.addAnimationPlayer(walkAnimation, forKey: "walk")
@@ -263,48 +263,48 @@ class Character: NSObject {
     var node: SCNNode! {
         return characterNode
     }
-        
+
     func queueResetCharacterPosition() {
         shouldResetCharacterPosition = true
     }
-    
+
     // MARK: Audio
-    
+
     func playFootStep() {
-        if groundNode != nil && isWalking { // We are in the air, no sound to play.
+        if groundNode != nil, isWalking { // We are in the air, no sound to play.
             // Play a random step sound.
-            let randSnd: Int = Int(Float(arc4random()) / Float(RAND_MAX) * Float(Character.stepsCount))
+            let randSnd: Int = .init(Float(arc4random()) / Float(RAND_MAX) * Float(Character.stepsCount))
             let stepSoundIndex: Int = min(Character.stepsCount - 1, randSnd)
-            characterNode.runAction(SCNAction.playAudio( steps[stepSoundIndex], waitForCompletion: false))
+            characterNode.runAction(SCNAction.playAudio(steps[stepSoundIndex], waitForCompletion: false))
         }
     }
-    
+
     func playJumpSound() {
         characterNode!.runAction(SCNAction.playAudio(jumpSound, waitForCompletion: false))
     }
-    
+
     func playAttackSound() {
         characterNode!.runAction(SCNAction.playAudio(attackSound, waitForCompletion: false))
     }
-    
+
     var isBurning: Bool = false {
         didSet {
             if isBurning == oldValue {
                 return
             }
-            //walk faster when burning
+            // walk faster when burning
             let oldSpeed = walkSpeed
             walkSpeed = oldSpeed
-            
+
             if isBurning {
                 model.runAction(SCNAction.sequence([
                     SCNAction.playAudio(catchFireSound, waitForCompletion: false),
                     SCNAction.playAudio(ouchSound, waitForCompletion: false),
                     SCNAction.repeatForever(SCNAction.sequence([
                         SCNAction.fadeOpacity(to: 0.01, duration: 0.1),
-                        SCNAction.fadeOpacity(to: 1.0, duration: 0.1)
-                        ]))
-                    ]))
+                        SCNAction.fadeOpacity(to: 1.0, duration: 0.1),
+                    ])),
+                ]))
                 whiteSmokeEmitter.birthRate = 0
                 fireEmitter.birthRate = fireEmitterBirthRate
                 smokeEmitter.birthRate = smokeEmitterBirthRate
@@ -313,14 +313,14 @@ class Character: NSObject {
                 model.removeAllActions()
                 model.opacity = 1.0
                 model.runAction(SCNAction.playAudio(aahSound, waitForCompletion: false))
-                
+
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 0.0
                 whiteSmokeEmitter.birthRate = whiteSmokeEmitterBirthRate
                 fireEmitter.birthRate = 0
                 smokeEmitter.birthRate = 0
                 SCNTransaction.commit()
-                
+
                 SCNTransaction.begin()
                 SCNTransaction.animationDuration = 5.0
                 whiteSmokeEmitter.birthRate = 0
@@ -328,70 +328,70 @@ class Character: NSObject {
             }
         }
     }
-    
+
     // MARK: - Controlling the character
-    
+
     private var directionAngle: CGFloat = 0.0 {
         didSet {
             characterOrientation.runAction(
-                SCNAction.rotateTo(x: 0.0, y: directionAngle, z: 0.0, duration: 0.1, usesShortestUnitArc:true))
+                SCNAction.rotateTo(x: 0.0, y: directionAngle, z: 0.0, duration: 0.1, usesShortestUnitArc: true))
         }
     }
-    
+
     func update(atTime time: TimeInterval, with renderer: SCNSceneRenderer) {
         frameCounter += 1
-        
+
         if shouldResetCharacterPosition {
             shouldResetCharacterPosition = false
             resetCharacterPosition()
             return
         }
-        
-        var characterVelocity = float3.zero
-        
+
+        var characterVelocity = SIMD3<Float>.zero
+
         // setup
-        var groundMove = float3.zero
-        
+        var groundMove = SIMD3<Float>.zero
+
         // did the ground moved?
         if groundNode != nil {
             let groundPosition = groundNode!.simdWorldPosition
             groundMove = groundPosition - groundNodeLastPosition
         }
-        
-        characterVelocity = float3(groundMove.x, 0, groundMove.z)
-        
-        let direction = characterDirection(withPointOfView:renderer.pointOfView)
-        
+
+        characterVelocity = SIMD3<Float>(groundMove.x, 0, groundMove.z)
+
+        let direction = characterDirection(withPointOfView: renderer.pointOfView)
+
         if previousUpdateTime == 0.0 {
             previousUpdateTime = time
         }
-        
+
         let deltaTime = time - previousUpdateTime
         let characterSpeed = CGFloat(deltaTime) * Character.speedFactor * walkSpeed
         let virtualFrameCount = Int(deltaTime / (1 / 60.0))
         previousUpdateTime = time
-        
+
         // move
         if !direction.allZero() {
             characterVelocity = direction * Float(characterSpeed)
             var runModifier = Float(1.0)
             #if os(OSX)
-            if NSEvent.modifierFlags.contains(.shift) {
-                runModifier = 2.0
-            }
+                if NSEvent.modifierFlags.contains(.shift) {
+                    runModifier = 2.0
+                }
             #endif
             walkSpeed = CGFloat(runModifier * simd_length(direction))
-            
+
             // move character
             directionAngle = CGFloat(atan2f(direction.x, direction.z))
-            
+
             isWalking = true
         } else {
             isWalking = false
         }
-        
+
         // put the character on the ground
-        let up = float3(0, 1, 0)
+        let up = SIMD3<Float>(0, 1, 0)
         var wPosition = characterNode.simdWorldPosition
         // gravity
         downwardAcceleration -= Character.gravity
@@ -401,67 +401,68 @@ class Character: NSObject {
         var p1 = wPosition
         p0.y = wPosition.y + up.y * HIT_RANGE
         p1.y = wPosition.y - up.y * HIT_RANGE
-        
+
         let options: [String: Any] = [
             SCNHitTestOption.backFaceCulling.rawValue: false,
             SCNHitTestOption.categoryBitMask.rawValue: Character.collisionMeshBitMask,
-            SCNHitTestOption.ignoreHiddenNodes.rawValue: false]
-        
+            SCNHitTestOption.ignoreHiddenNodes.rawValue: false,
+        ]
+
         let hitFrom = SCNVector3(p0)
         let hitTo = SCNVector3(p1)
         let hitResult = renderer.scene!.rootNode.hitTestWithSegment(from: hitFrom, to: hitTo, options: options).first
-        
+
         let wasTouchingTheGroup = groundNode != nil
         groundNode = nil
         var touchesTheGround = false
         let wasBurning = isBurning
-        
+
         if let hit = hitResult {
-            let ground = float3(hit.worldCoordinates)
+            let ground = SIMD3<Float>(hit.worldCoordinates)
             if wPosition.y <= ground.y + Character.collisionMargin {
                 wPosition.y = ground.y + Character.collisionMargin
                 if downwardAcceleration < 0 {
-                   downwardAcceleration = 0
+                    downwardAcceleration = 0
                 }
                 groundNode = hit.node
                 touchesTheGround = true
-                
-                //touching lava?
+
+                // touching lava?
                 isBurning = groundNode?.name == "COLL_lava"
             }
         } else {
             if wPosition.y < Character.minAltitude {
                 wPosition.y = Character.minAltitude
-                //reset
+                // reset
                 queueResetCharacterPosition()
             }
         }
-        
-        groundNodeLastPosition = (groundNode != nil) ? groundNode!.simdWorldPosition: float3.zero
-        
-        //jump -------------------------------------------------------------
+
+        groundNodeLastPosition = (groundNode != nil) ? groundNode!.simdWorldPosition : SIMD3<Float>.zero
+
+        // jump -------------------------------------------------------------
         if jumpState == 0 {
-            if isJump && touchesTheGround {
+            if isJump, touchesTheGround {
                 downwardAcceleration += Character.jumpImpulse
                 jumpState = 1
-                
+
                 model.animationPlayer(forKey: "jump")?.play()
             }
         } else {
-            if jumpState == 1 && !isJump {
+            if jumpState == 1, !isJump {
                 jumpState = 2
             }
-            
+
             if downwardAcceleration > 0 {
-                for _ in 0..<virtualFrameCount {
-                    downwardAcceleration *= jumpState == 1 ? 0.99: 0.2
+                for _ in 0 ..< virtualFrameCount {
+                    downwardAcceleration *= jumpState == 1 ? 0.99 : 0.2
                 }
             }
-            
+
             if touchesTheGround {
                 if !wasTouchingTheGroup {
                     model.animationPlayer(forKey: "jump")?.stop(withBlendOutDuration: 0.1)
-                    
+
                     // trigger jump particles if not touching lava
                     if isBurning {
                         model.childNode(withName: "dustEmitter", recursively: true)?.addParticleSystem(jumpDustParticle)
@@ -470,49 +471,49 @@ class Character: NSObject {
                         if wasBurning {
                             characterNode.runAction(SCNAction.sequence([
                                 SCNAction.playAudio(catchFireSound, waitForCompletion: false),
-                                SCNAction.playAudio(ouchSound, waitForCompletion: false)
-                                ]))
+                                SCNAction.playAudio(ouchSound, waitForCompletion: false),
+                            ]))
                         }
                     }
                 }
-                
+
                 if !isJump {
                     jumpState = 0
                 }
             }
         }
-        
-        if touchesTheGround && !wasTouchingTheGroup && !isBurning && lastStepFrame < frameCounter - 10 {
+
+        if touchesTheGround, !wasTouchingTheGroup, !isBurning, lastStepFrame < frameCounter - 10 {
             // sound
             lastStepFrame = frameCounter
             characterNode.runAction(SCNAction.playAudio(steps[0], waitForCompletion: false))
         }
-        
+
         if wPosition.y < characterNode.simdPosition.y {
             wPosition.y = characterNode.simdPosition.y
         }
-        //------------------------------------------------------------------
-        
+        // ------------------------------------------------------------------
+
         // progressively update the elevation node when we touch the ground
         if touchesTheGround {
             targetAltitude = wPosition.y
         }
         baseAltitude *= 0.95
         baseAltitude += targetAltitude * 0.05
-        
+
         characterVelocity.y += downwardAcceleration
-        if simd_length_squared(characterVelocity) > 10E-4 * 10E-4 {
+        if simd_length_squared(characterVelocity) > 10e-4 * 10e-4 {
             let startPosition = characterNode!.presentation.simdWorldPosition + collisionShapeOffsetFromModel
             slideInWorld(fromPosition: startPosition, velocity: characterVelocity)
         }
     }
-    
+
     // MARK: - Animating the character
-    
+
     var isAttacking: Bool {
         return attackCount > 0
     }
-    
+
     func attack() {
         attackCount += 1
         model.animationPlayer(forKey: "spin")?.play()
@@ -521,7 +522,7 @@ class Character: NSObject {
         }
         spinParticleAttach.addParticleSystem(spinCircleParticle)
     }
-    
+
     var isWalking: Bool = false {
         didSet {
             if oldValue != isWalking {
@@ -534,27 +535,27 @@ class Character: NSObject {
             }
         }
     }
-    
+
     var walkSpeed: CGFloat = 1.0 {
         didSet {
-            let burningFactor: CGFloat = isBurning ? 2: 1
+            let burningFactor: CGFloat = isBurning ? 2 : 1
             model.animationPlayer(forKey: "walk")?.speed = Character.speedFactor * walkSpeed * burningFactor
         }
     }
-    
-    func characterDirection(withPointOfView pointOfView: SCNNode?) -> float3 {
-        let controllerDir = self.direction
+
+    func characterDirection(withPointOfView pointOfView: SCNNode?) -> SIMD3<Float> {
+        let controllerDir = direction
         if controllerDir.allZero() {
-            return float3.zero
+            return SIMD3<Float>.zero
         }
-        
-        var directionWorld = float3.zero
+
+        var directionWorld = SIMD3<Float>.zero
         if let pov = pointOfView {
-            let p1 = pov.presentation.simdConvertPosition(float3(controllerDir.x, 0.0, controllerDir.y), to: nil)
-            let p0 = pov.presentation.simdConvertPosition(float3.zero, to: nil)
+            let p1 = pov.presentation.simdConvertPosition(SIMD3<Float>(controllerDir.x, 0.0, controllerDir.y), to: nil)
+            let p0 = pov.presentation.simdConvertPosition(SIMD3<Float>.zero, to: nil)
             directionWorld = p1 - p0
             directionWorld.y = 0
-            if simd_any(directionWorld != float3.zero) {
+            if simd_any(directionWorld != SIMD3<Float>.zero) {
                 let minControllerSpeedFactor = Float(0.2)
                 let maxControllerSpeedFactor = Float(1.0)
                 let speed = simd_length(controllerDir) * (maxControllerSpeedFactor - minControllerSpeedFactor) + minControllerSpeedFactor
@@ -563,24 +564,22 @@ class Character: NSObject {
         }
         return directionWorld
     }
-    
+
     func resetCharacterPosition() {
         characterNode.simdPosition = Character.initialPosition
         downwardAcceleration = 0
     }
-    
+
     // MARK: enemy
-    
+
     func didHitEnemy() {
         model.runAction(SCNAction.group(
             [SCNAction.playAudio(hitEnemySound, waitForCompletion: false),
              SCNAction.sequence(
-                [SCNAction.wait(duration: 0.5),
-                 SCNAction.playAudio(explodeEnemySound, waitForCompletion: false)
-                ])
-            ]))
+                 [SCNAction.wait(duration: 0.5),
+                  SCNAction.playAudio(explodeEnemySound, waitForCompletion: false)])]))
     }
-    
+
     func wasTouchedByEnemy() {
         let time = CFAbsoluteTimeGetCurrent()
         if time > lastHitTime + 1 {
@@ -589,19 +588,19 @@ class Character: NSObject {
                 SCNAction.playAudio(hitSound, waitForCompletion: false),
                 SCNAction.repeat(SCNAction.sequence([
                     SCNAction.fadeOpacity(to: 0.01, duration: 0.1),
-                    SCNAction.fadeOpacity(to: 1.0, duration: 0.1)
-                    ]), count: 4)
-                ]))
+                    SCNAction.fadeOpacity(to: 1.0, duration: 0.1),
+                ]), count: 4),
+            ]))
         }
     }
-    
+
     // MARK: utils
-    
+
     class func loadAnimation(fromSceneNamed sceneName: String) -> SCNAnimationPlayer {
-        let scene = SCNScene( named: sceneName )!
+        let scene = SCNScene(named: sceneName)!
         // find top level animation
-        var animationPlayer: SCNAnimationPlayer! = nil
-        scene.rootNode.enumerateChildNodes { (child, stop) in
+        var animationPlayer: SCNAnimationPlayer!
+        scene.rootNode.enumerateChildNodes { child, stop in
             if !child.animationKeys.isEmpty {
                 animationPlayer = child.animationPlayer(forKey: child.animationKeys[0])
                 stop.pointee = true
@@ -609,12 +608,13 @@ class Character: NSObject {
         }
         return animationPlayer
     }
-    
+
     // MARK: - physics contact
-    func slideInWorld(fromPosition start: float3, velocity: float3) {
-        let maxSlideIteration: Int = 4
+
+    func slideInWorld(fromPosition start: SIMD3<Float>, velocity: SIMD3<Float>) {
+        let maxSlideIteration = 4
         var iteration = 0
-        var stop: Bool = false
+        var stop = false
 
         var replacementPoint = start
 
@@ -622,7 +622,8 @@ class Character: NSObject {
         var velocity = velocity
         let options: [SCNPhysicsWorld.TestOption: Any] = [
             SCNPhysicsWorld.TestOption.collisionBitMask: Bitmask.collision.rawValue,
-            SCNPhysicsWorld.TestOption.searchMode: SCNPhysicsWorld.TestSearchMode.closest]
+            SCNPhysicsWorld.TestOption.searchMode: SCNPhysicsWorld.TestSearchMode.closest,
+        ]
         while !stop {
             var from = matrix_identity_float4x4
             from.position = start
@@ -634,12 +635,13 @@ class Character: NSObject {
                 with: characterCollisionShape!,
                 from: SCNMatrix4(from),
                 to: SCNMatrix4(to),
-                options: options)
+                options: options
+            )
             if !contacts.isEmpty {
                 (velocity, start) = handleSlidingAtContact(contacts.first!, position: start, velocity: velocity)
                 iteration += 1
 
-                if simd_length_squared(velocity) <= (10E-3 * 10E-3) || iteration >= maxSlideIteration {
+                if simd_length_squared(velocity) <= (10e-3 * 10e-3) || iteration >= maxSlideIteration {
                     replacementPoint = start
                     stop = true
                 }
@@ -651,15 +653,16 @@ class Character: NSObject {
         characterNode!.simdWorldPosition = replacementPoint - collisionShapeOffsetFromModel
     }
 
-    private func handleSlidingAtContact(_ closestContact: SCNPhysicsContact, position start: float3, velocity: float3)
-        -> (computedVelocity: simd_float3, colliderPositionAtContact: simd_float3) {
+    private func handleSlidingAtContact(_ closestContact: SCNPhysicsContact, position start: SIMD3<Float>, velocity: SIMD3<Float>)
+        -> (computedVelocity: simd_float3, colliderPositionAtContact: simd_float3)
+    {
         let originalDistance: Float = simd_length(velocity)
 
         let colliderPositionAtContact = start + Float(closestContact.sweepTestFraction) * velocity
 
         // Compute the sliding plane.
-        let slidePlaneNormal = float3(closestContact.contactNormal)
-        let slidePlaneOrigin = float3(closestContact.contactPoint)
+        let slidePlaneNormal = SIMD3<Float>(closestContact.contactNormal)
+        let slidePlaneOrigin = SIMD3<Float>(closestContact.contactPoint)
         let centerOffset = slidePlaneOrigin - colliderPositionAtContact
 
         // Compute destination relative to the point of contact.
@@ -676,8 +679,8 @@ class Character: NSObject {
         let angle = simd_dot(slidePlaneNormal, normalizedVelocity)
 
         var frictionCoeff: Float = 0.3
-        if fabs(angle) < 0.9 {
-            t += 10E-3
+        if abs(angle) < 0.9 {
+            t += 10e-3
             frictionCoeff = 1.0
         }
         let newDestinationPoint = (destinationPoint + t * slidePlaneNormal) - centerOffset
@@ -688,5 +691,4 @@ class Character: NSObject {
 
         return (computedVelocity, colliderPositionAtContact)
     }
-
 }

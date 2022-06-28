@@ -1,7 +1,7 @@
 /*
  Copyright (C) 2018 Apple Inc. All Rights Reserved.
  See LICENSE.txt for this sample’s licensing information
- 
+
  Abstract:
  This class implements the chasing behavior.
  */
@@ -16,7 +16,6 @@ enum ChaserState: Int {
 }
 
 class ChaserComponent: BaseComponent {
-
     @GKInspectable var hitDistance: Float = 0.5
     @GKInspectable var chaseDistance: Float = 3.0
     @GKInspectable var chaseSpeed: Float = 9.0
@@ -26,17 +25,17 @@ class ChaserComponent: BaseComponent {
 
     var player: PlayerComponent? {
         didSet {
-            self.agent.mass = self.mass
-            self.agent.maxAcceleration = self.maxAcceleration
+            agent.mass = mass
+            agent.maxAcceleration = maxAcceleration
 
             chaseGoal = GKGoal(toSeekAgent: (player?.agent)!)
-            wanderGoal = GKGoal(toWander: self.wanderSpeed)
+            wanderGoal = GKGoal(toWander: wanderSpeed)
 
-            var center: [float2] = []
-            center.append(float2(x: -1, y: 9))
-            center.append(float2(x: 1, y: 9))
-            center.append(float2(x: 1, y: 11))
-            center.append(float2(x: -1, y: 11))
+            var center: [SIMD2<Float>] = []
+            center.append(SIMD2<Float>(x: -1, y: 9))
+            center.append(SIMD2<Float>(x: 1, y: 9))
+            center.append(SIMD2<Float>(x: 1, y: 11))
+            center.append(SIMD2<Float>(x: -1, y: 11))
 
             let p = GKPath(points: center, radius: 0.5, cyclical: true)
             centerGoal = GKGoal(toStayOn: p, maxPredictionTime: 1)
@@ -62,23 +61,23 @@ class ChaserComponent: BaseComponent {
     func startWandering() {
         guard let behavior = behavior else { return }
 
-        self.agent.maxSpeed = self.wanderSpeed
-        behavior.setWeight(1, for: self.wanderGoal!)
-        behavior.setWeight(0, for: self.chaseGoal!)
-        behavior.setWeight(0.6, for: self.centerGoal!)
+        agent.maxSpeed = wanderSpeed
+        behavior.setWeight(1, for: wanderGoal!)
+        behavior.setWeight(0, for: chaseGoal!)
+        behavior.setWeight(0.6, for: centerGoal!)
         state = .wander
     }
 
     func startChasing() {
         guard let behavior = behavior else { return }
 
-        self.agent.maxSpeed = self.speed
-        behavior.setWeight(0, for: self.wanderGoal!)
-        behavior.setWeight(1, for: self.chaseGoal!)
+        agent.maxSpeed = speed
+        behavior.setWeight(0, for: wanderGoal!)
+        behavior.setWeight(1, for: chaseGoal!)
         behavior.setWeight(0.1, for: centerGoal!)
         state = .chase
     }
-    
+
     override func update(deltaTime seconds: TimeInterval) {
         if state == .dead {
             return
@@ -94,16 +93,16 @@ class ChaserComponent: BaseComponent {
 
         // Chase if below chaseDistance from enemy, wander otherwise.
         switch state {
-            case .wander:
-                if distance < chaseDistance {
-                    startChasing()
-                }
-            case .chase:
-                if distance > chaseDistance {
-                    startWandering()
-                }
-            case .dead:
-                break
+        case .wander:
+            if distance < chaseDistance {
+                startChasing()
+            }
+        case .chase:
+            if distance > chaseDistance {
+                startWandering()
+            }
+        case .dead:
+            break
         }
 
         speed = min(chaseSpeed, distance)

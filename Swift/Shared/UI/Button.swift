@@ -1,7 +1,7 @@
 /*
  Copyright (C) 2018 Apple Inc. All Rights Reserved.
  See LICENSE.txt for this sample’s licensing information
- 
+
  Abstract:
  A basic `SKNode` based button.
  */
@@ -37,7 +37,7 @@ class Button: SKNode {
         super.init()
 
         // create a label
-        let fontName: String = "Optima-ExtraBlack"
+        let fontName = "Optima-ExtraBlack"
         label = SKLabelNode(fontNamed: fontName)
         label!.text = txt
         label!.fontSize = 18
@@ -65,7 +65,8 @@ class Button: SKNode {
         addChild(node)
     }
 
-    required init?(coder aDecoder: NSCoder) {
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -73,27 +74,27 @@ class Button: SKNode {
         return size.height
     }
 
-#if os( OSX )
-    override func mouseDown(with event: NSEvent) {
-        setBackgroundColor(SKColor(red: CGFloat(0), green: CGFloat(0), blue: CGFloat(0), alpha: CGFloat(1.0)))
-    }
+    #if os(OSX)
+        override func mouseDown(with _: NSEvent) {
+            setBackgroundColor(SKColor(red: CGFloat(0), green: CGFloat(0), blue: CGFloat(0), alpha: CGFloat(1.0)))
+        }
 
-    override func mouseUp(with event: NSEvent) {
-        setBackgroundColor(SKColor(red: CGFloat(0), green: CGFloat(0), blue: CGFloat(0), alpha: CGFloat(0.75)))
-        
-        let x = position.x + ((parent?.position.x) ?? CGFloat(0))
-        let y = position.y + ((parent?.position.y) ?? CGFloat(0))
-        let p = event.locationInWindow
+        override func mouseUp(with event: NSEvent) {
+            setBackgroundColor(SKColor(red: CGFloat(0), green: CGFloat(0), blue: CGFloat(0), alpha: CGFloat(0.75)))
 
-        if fabs(p.x - x) < width / 2 * xScale && fabs(p.y - y) < height() / 2 * yScale {
+            let x = position.x + ((parent?.position.x) ?? CGFloat(0))
+            let y = position.y + ((parent?.position.y) ?? CGFloat(0))
+            let p = event.locationInWindow
+
+            if abs(p.x - x) < width / 2 * xScale && abs(p.y - y) < height() / 2 * yScale {
+                _ = (targetClicked! as AnyObject).perform(actionClicked, with: self)
+            }
+        }
+
+    #endif
+    #if os(iOS)
+        override func touchesEnded(_: Set<UITouch>, with _: UIEvent?) {
             _ = (targetClicked! as AnyObject).perform(actionClicked, with: self)
         }
-    }
-
-#endif
-#if os( iOS )
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        _ = (targetClicked! as AnyObject).perform(actionClicked, with: self)
-    }
-#endif
+    #endif
 }

@@ -1,7 +1,7 @@
 /*
  Copyright (C) 2018 Apple Inc. All Rights Reserved.
  See LICENSE.txt for this sample’s licensing information
- 
+
  Abstract:
  This class is used as a base class for all game components.
  */
@@ -11,9 +11,8 @@ import SceneKit
 import simd
 
 class BaseComponent: GKComponent {
-
     public static let EnemyAltitude: Float = -0.46
-    
+
     private(set) var agent = GKAgent2D()
     public var isAutoMoveNode = true
 
@@ -51,7 +50,7 @@ class BaseComponent: GKComponent {
     }
 
     override func update(deltaTime seconds: TimeInterval) {
-        if self.isDead() {
+        if isDead() {
             return
         }
 
@@ -71,15 +70,15 @@ class BaseComponent: GKComponent {
 
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.4
-        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseOut)
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeOut)
 
         SCNTransaction.completionBlock = {
-            explositionScene.rootNode.enumerateHierarchy({ (node: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
+            explositionScene.rootNode.enumerateHierarchy { (node: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
                 guard let particles = node.particleSystems else { return }
                 for particle in particles {
                     enemy.addParticleSystem(particle)
                 }
-            })
+            }
 
             // Hide
             enemy.childNodes.first?.opacity = 0.0
@@ -98,18 +97,17 @@ class BaseComponent: GKComponent {
 }
 
 extension GKAgent2D {
-    
     var transform: matrix_float4x4 {
         get {
             let quat = simd_quaternion(-Float(rotation - (.pi / 2)), simd_make_float3(0, 1, 0))
             var transform: simd_float4x4 = simd_matrix4x4(quat)
-            transform.columns.3 = simd_make_float4(self.position.x, BaseComponent.EnemyAltitude, self.position.y, 1)
+            transform.columns.3 = simd_make_float4(position.x, BaseComponent.EnemyAltitude, position.y, 1)
             return transform
         }
         set(newTransform) {
             let quatf: simd_quatf = simd_quaternion(newTransform)
-            self.rotation = -(simd_angle(quatf) + (.pi / 2))
-            self.position = simd_float2(newTransform.columns.3.x, newTransform.columns.3.z)
+            rotation = -(simd_angle(quatf) + (.pi / 2))
+            position = simd_float2(newTransform.columns.3.x, newTransform.columns.3.z)
         }
     }
 }

@@ -1,7 +1,7 @@
 /*
  Copyright (C) 2018 Apple Inc. All Rights Reserved.
  See LICENSE.txt for this sample’s licensing information
- 
+
  Abstract:
  This class implements the scared behavior.
  */
@@ -26,16 +26,16 @@ class ScaredComponent: BaseComponent {
             agent.mass = mass
             agent.maxAcceleration = maxAcceleration
             fleeGoal = GKGoal(toFleeAgent: player!.agent)
-            wanderGoal = GKGoal(toWander:wanderSpeed)
+            wanderGoal = GKGoal(toWander: wanderSpeed)
 
-            let centers: [float2] = [
+            let centers: [SIMD2<Float>] = [
                 [-1, 9],
                 [1, 9],
                 [1, 11],
-                [-1, 11]
+                [-1, 11],
             ]
 
-            let path = GKPath( points: centers, radius: Float(0.5), cyclical: true )
+            let path = GKPath(points: centers, radius: Float(0.5), cyclical: true)
             centerGoal = GKGoal(toStayOn: path, maxPredictionTime: 1)
             behavior = GKBehavior(goals: [fleeGoal!, wanderGoal!, centerGoal!])
             agent.behavior = behavior
@@ -70,7 +70,7 @@ class ScaredComponent: BaseComponent {
     override func isDead() -> Bool {
         return state == .dead
     }
-    
+
     override func update(deltaTime seconds: TimeInterval) {
         if state == .dead {
             return
@@ -85,16 +85,16 @@ class ScaredComponent: BaseComponent {
         let distance = simd_distance(enemyNode.simdWorldPosition, playerNode.simdWorldPosition)
 
         switch state {
-            case .wander:
-                if distance < fleeDistance {
-                    startFleeing()
-                }
-            case .flee:
-                if distance > fleeDistance {
-                    startWandering()
-                }
-            case .dead:
-                break
+        case .wander:
+            if distance < fleeDistance {
+                startFleeing()
+            }
+        case .flee:
+            if distance > fleeDistance {
+                startWandering()
+            }
+        case .dead:
+            break
         }
 
         handleEnemyResponse(character, enemy: enemyNode)
@@ -110,11 +110,10 @@ class ScaredComponent: BaseComponent {
 
                 character.didHitEnemy()
 
-                performEnemyDieWithExplosion( enemy, direction: direction)
+                performEnemyDieWithExplosion(enemy, direction: direction)
             } else {
                 character.wasTouchedByEnemy()
             }
         }
     }
-
 }

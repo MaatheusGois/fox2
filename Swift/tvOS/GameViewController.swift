@@ -1,7 +1,7 @@
 /*
  Copyright (C) 2018 Apple Inc. All Rights Reserved.
  See LICENSE.txt for this sample’s licensing information
- 
+
  Abstract:
  The app's main view controller.
  */
@@ -13,6 +13,7 @@ class GameViewControllerTVOS: UIViewController {
     var gameView: SCNView! {
         return view as! SCNView
     }
+
     var gameController: GameController?
 
     override func viewDidLoad() {

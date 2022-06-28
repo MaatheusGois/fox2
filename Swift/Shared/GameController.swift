@@ -1,7 +1,7 @@
 /*
  Copyright (C) 2018 Apple Inc. All Rights Reserved.
  See LICENSE.txt for this sample’s licensing information
- 
+
  Abstract:
  This class serves as the app's source of control flow.
  */
@@ -20,7 +20,7 @@ struct Bitmask: OptionSet {
     static let collectable = Bitmask(rawValue: 1 << 4) // the collectables (gems and key)
 }
 
-#if os( iOS )
+#if os(iOS)
     typealias ExtraProtocols = SCNSceneRendererDelegate & SCNPhysicsContactDelegate & MenuDelegate
         & PadOverlayDelegate & ButtonOverlayDelegate
 #else
@@ -43,9 +43,9 @@ enum AudioSourceKind: Int {
     case hitEnemy
     case totalCount
 }
-class GameController: NSObject, ExtraProtocols {
 
-// Global settings
+class GameController: NSObject, ExtraProtocols {
+    // Global settings
     static let DefaultCameraTransitionDuration = 1.0
     static let NumberOfFiends = 100
     static let CameraOrientationSensitivity: Float = 0.05
@@ -67,22 +67,22 @@ class GameController: NSObject, ExtraProtocols {
     private var activeCamera: SCNNode?
     private var playingCinematic: Bool = false
 
-    //triggers
+    // triggers
     private var lastTrigger: SCNNode?
     private var firstTriggerDone: Bool = false
 
-    //enemies
+    // enemies
     private var enemy1: SCNNode?
     private var enemy2: SCNNode?
     private var enemy3: SCNNode?
 
-    //friends
+    // friends
     private var friends = [SCNNode](repeating: SCNNode(), count: NumberOfFiends)
     private var friendsSpeed = [Float](repeating: 0.0, count: NumberOfFiends)
     private var friendCount: Int = 0
     private var friendsAreFree: Bool = false
 
-    //collected objects
+    // collected objects
     private var collectedKeys: Int = 0
     private var collectedGems: Int = 0
     private var keyIsVisible: Bool = false
@@ -104,17 +104,20 @@ class GameController: NSObject, ExtraProtocols {
     // update delta time
     private var lastUpdateTime = TimeInterval()
 
-// MARK: -
-// MARK: Setup
+    // MARK: -
+
+    // MARK: Setup
 
     func setupGameController() {
         NotificationCenter.default.addObserver(
-                self, selector: #selector(self.handleControllerDidConnect),
-                name: NSNotification.Name.GCControllerDidConnect, object: nil)
+            self, selector: #selector(handleControllerDidConnect),
+            name: NSNotification.Name.GCControllerDidConnect, object: nil
+        )
 
         NotificationCenter.default.addObserver(
-            self, selector: #selector(self.handleControllerDidDisconnect),
-            name: NSNotification.Name.GCControllerDidDisconnect, object: nil)
+            self, selector: #selector(handleControllerDidDisconnect),
+            name: NSNotification.Name.GCControllerDidDisconnect, object: nil
+        )
         guard let controller = GCController.controllers().first else {
             return
         }
@@ -130,15 +133,15 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func setupPhysics() {
-        //make sure all objects only collide with the character
-        self.scene?.rootNode.enumerateHierarchy({(_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) -> Void in
+        // make sure all objects only collide with the character
+        scene?.rootNode.enumerateHierarchy { (_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) in
             node.physicsBody?.collisionBitMask = Int(Bitmask.character.rawValue)
-        })
+        }
     }
 
     func setupCollisions() {
         // load the collision mesh from another scene and merge into main scene
-        let collisionsScene = SCNScene( named: "Art.scnassets/collision.scn" )
+        let collisionsScene = SCNScene(named: "Art.scnassets/collision.scn")
         collisionsScene!.rootNode.enumerateChildNodes { (_ child: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) in
             child.opacity = 0.0
             self.scene?.rootNode.addChildNode(child)
@@ -148,12 +151,12 @@ class GameController: NSObject, ExtraProtocols {
     // the follow camera behavior make the camera to follow the character, with a constant distance, altitude and smoothed motion
     func setupFollowCamera(_ cameraNode: SCNNode) {
         // look at "lookAtTarget"
-        let lookAtConstraint = SCNLookAtConstraint(target: self.lookAtTarget)
+        let lookAtConstraint = SCNLookAtConstraint(target: lookAtTarget)
         lookAtConstraint.influenceFactor = 0.07
         lookAtConstraint.isGimbalLockEnabled = true
 
         // distance constraints
-        let follow = SCNDistanceConstraint(target: self.lookAtTarget)
+        let follow = SCNDistanceConstraint(target: lookAtTarget)
         let distance = CGFloat(simd_length(cameraNode.simdPosition))
         follow.minimumDistance = distance
         follow.maximumDistance = distance
@@ -162,12 +165,12 @@ class GameController: NSObject, ExtraProtocols {
         let desiredAltitude = abs(cameraNode.simdWorldPosition.y)
         weak var weakSelf = self
 
-        let keepAltitude = SCNTransformConstraint.positionConstraint(inWorldSpace: true, with: {(_ node: SCNNode, _ position: SCNVector3) -> SCNVector3 in
-                guard let strongSelf = weakSelf else { return position }
-                var position = float3(position)
-                position.y = strongSelf.character!.baseAltitude + desiredAltitude
-                return SCNVector3( position )
-            })
+        let keepAltitude = SCNTransformConstraint.positionConstraint(inWorldSpace: true, with: { (_: SCNNode, _ position: SCNVector3) -> SCNVector3 in
+            guard let strongSelf = weakSelf else { return position }
+            var position = SIMD3<Float>(position)
+            position.y = strongSelf.character!.baseAltitude + desiredAltitude
+            return SCNVector3(position)
+        })
 
         let accelerationConstraint = SCNAccelerationConstraint()
         accelerationConstraint.maximumLinearVelocity = 1500.0
@@ -215,7 +218,7 @@ class GameController: NSObject, ExtraProtocols {
         let distance: Float = simd_length(cameraNode.simdPosition)
         let originalAxisDirection = cameraNode.simdWorldFront
 
-        self.lastActiveCameraFrontDirection = originalAxisDirection
+        lastActiveCameraFrontDirection = originalAxisDirection
 
         let symetricAxisDirection = simd_make_float3(-originalAxisDirection.x, originalAxisDirection.y, -originalAxisDirection.z)
 
@@ -223,7 +226,7 @@ class GameController: NSObject, ExtraProtocols {
 
         // define a custom constraint for the axis alignment
         let axisAlignConstraint = SCNTransformConstraint.positionConstraint(
-            inWorldSpace: true, with: {(_ node: SCNNode, _ position: SCNVector3) -> SCNVector3 in
+            inWorldSpace: true, with: { (_ node: SCNNode, _ position: SCNVector3) -> SCNVector3 in
                 guard let strongSelf = weakSelf else { return position }
                 guard let activeCamera = strongSelf.activeCamera else { return position }
 
@@ -231,11 +234,12 @@ class GameController: NSObject, ExtraProtocols {
                 let referenceFrontDirection =
                     strongSelf.activeCamera == node ? strongSelf.lastActiveCameraFrontDirection : activeCamera.presentation.simdWorldFront
 
-                let axis = simd_dot(originalAxisDirection, referenceFrontDirection) > 0 ? originalAxisDirection: symetricAxisDirection
+                let axis = simd_dot(originalAxisDirection, referenceFrontDirection) > 0 ? originalAxisDirection : symetricAxisDirection
 
                 let constrainedPosition = axisOrigin - distance * axis
                 return SCNVector3(constrainedPosition)
-            })
+            }
+        )
 
         let accelerationConstraint = SCNAccelerationConstraint()
         accelerationConstraint.maximumLinearAcceleration = 20
@@ -243,7 +247,7 @@ class GameController: NSObject, ExtraProtocols {
         accelerationConstraint.damping = 0.05
 
         // look at constraint
-        let lookAtConstraint = SCNLookAtConstraint(target: self.lookAtTarget)
+        let lookAtConstraint = SCNLookAtConstraint(target: lookAtTarget)
         lookAtConstraint.isGimbalLockEnabled = true // keep horizon horizontal
 
         cameraNode.constraints = [axisAlignConstraint, lookAtConstraint, accelerationConstraint]
@@ -260,38 +264,39 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func setupCamera() {
-        //The lookAtTarget node will be placed slighlty above the character using a constraint
+        // The lookAtTarget node will be placed slighlty above the character using a constraint
         weak var weakSelf = self
 
-        self.lookAtTarget.constraints = [ SCNTransformConstraint.positionConstraint(
-                                        inWorldSpace: true, with: { (_ node: SCNNode, _ position: SCNVector3) -> SCNVector3 in
-            guard let strongSelf = weakSelf else { return position }
+        lookAtTarget.constraints = [SCNTransformConstraint.positionConstraint(
+            inWorldSpace: true, with: { (_: SCNNode, _ position: SCNVector3) -> SCNVector3 in
+                guard let strongSelf = weakSelf else { return position }
 
-            guard var worldPosition = strongSelf.character?.node?.simdWorldPosition else { return position }
-            worldPosition.y = strongSelf.character!.baseAltitude + 0.5
-            return SCNVector3(worldPosition)
-        })]
+                guard var worldPosition = strongSelf.character?.node?.simdWorldPosition else { return position }
+                worldPosition.y = strongSelf.character!.baseAltitude + 0.5
+                return SCNVector3(worldPosition)
+            }
+        )]
 
-        self.scene?.rootNode.addChildNode(lookAtTarget)
+        scene?.rootNode.addChildNode(lookAtTarget)
 
-        self.scene?.rootNode.enumerateHierarchy({(_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) -> Void in
+        scene?.rootNode.enumerateHierarchy { (_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) in
             if node.camera != nil {
                 self.setupCameraNode(node)
             }
-        })
+        }
 
-        self.cameraNode.camera = SCNCamera()
-        self.cameraNode.name = "mainCamera"
-        self.cameraNode.camera!.zNear = 0.1
-        self.scene!.rootNode.addChildNode(cameraNode)
+        cameraNode.camera = SCNCamera()
+        cameraNode.name = "mainCamera"
+        cameraNode.camera!.zNear = 0.1
+        scene!.rootNode.addChildNode(cameraNode)
 
         setActiveCamera("camLookAt_cameraGame", animationDuration: 0.0)
     }
 
     func setupEnemies() {
-        self.enemy1 = self.scene?.rootNode.childNode(withName: "enemy1", recursively: true)
-        self.enemy2 = self.scene?.rootNode.childNode(withName: "enemy2", recursively: true)
-        self.enemy3 = self.scene?.rootNode.childNode(withName: "enemy2", recursively: true)
+        enemy1 = scene?.rootNode.childNode(withName: "enemy1", recursively: true)
+        enemy2 = scene?.rootNode.childNode(withName: "enemy2", recursively: true)
+        enemy3 = scene?.rootNode.childNode(withName: "enemy2", recursively: true)
 
         let gkScene = GKScene()
 
@@ -302,14 +307,14 @@ class GameController: NSObject, ExtraProtocols {
 
         let playerComponent = PlayerComponent()
         playerComponent.isAutoMoveNode = false
-        playerComponent.character = self.character
+        playerComponent.character = character
         playerEntity.addComponent(playerComponent)
         playerComponent.positionAgentFromNode()
 
         // Chaser
         let chaserEntity = GKEntity()
         gkScene.addEntity(chaserEntity)
-        chaserEntity.addComponent(GKSCNNodeComponent(node: self.enemy1!))
+        chaserEntity.addComponent(GKSCNNodeComponent(node: enemy1!))
         let chaser = ChaserComponent()
         chaserEntity.addComponent(chaser)
         chaser.player = playerComponent
@@ -318,8 +323,8 @@ class GameController: NSObject, ExtraProtocols {
         // Scared
         let scaredEntity = GKEntity()
         gkScene.addEntity(scaredEntity)
-        scaredEntity.addComponent(GKSCNNodeComponent(node: self.enemy2!))
-        scaredEntity.addComponent(GKSCNNodeComponent(node: self.enemy3!))
+        scaredEntity.addComponent(GKSCNNodeComponent(node: enemy2!))
+        scaredEntity.addComponent(GKSCNNodeComponent(node: enemy3!))
         let scared = ScaredComponent()
         scaredEntity.addComponent(scared)
         scared.player = playerComponent
@@ -333,11 +338,11 @@ class GameController: NSObject, ExtraProtocols {
         anim.repeatCount = .infinity
         anim.autoreverses = true
         anim.duration = 1.2
-        anim.timingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseInEaseOut)
+        anim.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut)
 
-        self.enemy1!.addAnimation(anim, forKey: "")
-        self.enemy2!.addAnimation(anim, forKey: "")
-        self.enemy3!.addAnimation(anim, forKey: "")
+        enemy1!.addAnimation(anim, forKey: "")
+        enemy2!.addAnimation(anim, forKey: "")
+        enemy3!.addAnimation(anim, forKey: "")
 
         self.gkScene = gkScene
     }
@@ -354,11 +359,11 @@ class GameController: NSObject, ExtraProtocols {
         } else {
             var particles = [SCNParticleSystem]()
             let scene = SCNScene(named: fileName, inDirectory: directory.relativePath, options: nil)
-            scene!.rootNode.enumerateHierarchy({(_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) -> Void in
+            scene!.rootNode.enumerateHierarchy { (_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) in
                 if node.particleSystems != nil {
                     particles += node.particleSystems!
                 }
-            })
+            }
             return particles
         }
     }
@@ -377,10 +382,11 @@ class GameController: NSObject, ExtraProtocols {
 
         var alternate: Float = 1
         // This could be done in the editor using the action editor.
-        scene!.rootNode.enumerateHierarchy({(_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) -> Void in
-            if node.name == "mobilePlatform" && !node.childNodes.isEmpty {
+        scene!.rootNode.enumerateHierarchy { (_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) in
+            if node.name == "mobilePlatform", !node.childNodes.isEmpty {
                 node.simdPosition = simd_float3(
-                    node.simdPosition.x - (alternate * PLATFORM_MOVE_OFFSET / 2.0), node.simdPosition.y, node.simdPosition.z)
+                    node.simdPosition.x - (alternate * PLATFORM_MOVE_OFFSET / 2.0), node.simdPosition.y, node.simdPosition.z
+                )
 
                 let moveAction = SCNAction.move(by: SCNVector3(alternate * PLATFORM_MOVE_OFFSET, 0, 0),
                                                 duration: TimeInterval(1 / PLATFORM_MOVE_SPEED))
@@ -389,13 +395,13 @@ class GameController: NSObject, ExtraProtocols {
 
                 alternate = -alternate // alternate movement of platforms to desynchronize them
 
-                node.enumerateChildNodes({ (_ child: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) in
+                node.enumerateChildNodes { (_ child: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) in
                     if child.name == "particles_platform" {
                         child.particleSystems?[0].orientationDirection = SCNVector3(0, 1, 0)
                     }
-                })
+                }
             }
-        })
+        }
     }
 
     // MARK: - Camera transitions
@@ -405,15 +411,15 @@ class GameController: NSObject, ExtraProtocols {
     // and trigger the animation to smoothly move from the current position to the new position
     func setActiveCamera(_ cameraName: String, animationDuration duration: CFTimeInterval) {
         guard let camera = scene?.rootNode.childNode(withName: cameraName, recursively: true) else { return }
-        if self.activeCamera == camera {
+        if activeCamera == camera {
             return
         }
 
-        self.lastActiveCamera = activeCamera
+        lastActiveCamera = activeCamera
         if activeCamera != nil {
-            self.lastActiveCameraFrontDirection = (activeCamera?.presentation.simdWorldFront)!
+            lastActiveCameraFrontDirection = (activeCamera?.presentation.simdWorldFront)!
         }
-        self.activeCamera = camera
+        activeCamera = camera
 
         // save old transform in world space
         let oldTransform: SCNMatrix4 = cameraNode.presentation.worldTransform
@@ -431,7 +437,7 @@ class GameController: NSObject, ExtraProtocols {
         // now animate the transform to identity to smoothly move to the new desired position
         SCNTransaction.begin()
         SCNTransaction.animationDuration = duration
-        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: kCAMediaTimingFunctionEaseInEaseOut)
+        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut)
         cameraNode.transform = SCNMatrix4Identity
 
         if let cameraTemplate = camera.camera {
@@ -503,67 +509,67 @@ class GameController: NSObject, ExtraProtocols {
 
     init(scnView: SCNView) {
         super.init()
-        
+
         sceneRenderer = scnView
         sceneRenderer!.delegate = self
-        
+
         // Uncomment to show statistics such as fps and timing information
-        //scnView.showsStatistics = true
-        
+        // scnView.showsStatistics = true
+
         // setup overlay
         overlay = Overlay(size: scnView.bounds.size, controller: self)
         scnView.overlaySKScene = overlay
 
-        //load the main scene
-        self.scene = SCNScene(named: "Art.scnassets/scene.scn")
+        // load the main scene
+        scene = SCNScene(named: "Art.scnassets/scene.scn")
 
-        //setup physics
+        // setup physics
         setupPhysics()
 
-        //setup collisions
+        // setup collisions
         setupCollisions()
 
-        //load the character
+        // load the character
         setupCharacter()
 
-        //setup enemies
+        // setup enemies
         setupEnemies()
 
-        //setup friends
+        // setup friends
         addFriends(3)
 
-        //setup platforms
+        // setup platforms
         setupPlatforms()
 
-        //setup particles
+        // setup particles
         setupParticleSystem()
 
-        //setup lighting
+        // setup lighting
         let light = scene!.rootNode.childNode(withName: "DirectLight", recursively: true)!.light
-        light!.shadowCascadeCount = 3  // turn on cascade shadows
+        light!.shadowCascadeCount = 3 // turn on cascade shadows
         light!.shadowMapSize = CGSize(width: CGFloat(512), height: CGFloat(512))
         light!.maximumShadowDistance = 20
         light!.shadowCascadeSplittingFactor = 0.5
-        
-        //setup camera
+
+        // setup camera
         setupCamera()
 
-        //setup game controller
+        // setup game controller
         setupGameController()
 
-        //configure quality
+        // configure quality
         configureRenderingQuality(scnView)
 
-        //assign the scene to the view
-        sceneRenderer!.scene = self.scene
+        // assign the scene to the view
+        sceneRenderer!.scene = scene
 
-        //setup audio
+        // setup audio
         setupAudio()
 
-        //select the point of view to use
-        sceneRenderer!.pointOfView = self.cameraNode
+        // select the point of view to use
+        sceneRenderer!.pointOfView = cameraNode
 
-        //register ourself as the physics contact delegate to receive contact notifications
+        // register ourself as the physics contact delegate to receive contact notifications
         sceneRenderer!.scene!.physicsWorld.contactDelegate = self
     }
 
@@ -600,12 +606,12 @@ class GameController: NSObject, ExtraProtocols {
 
     // "triggers" are triggered when a character enter a box with the collision mask BitmaskTrigger
     func execTrigger(_ triggerNode: SCNNode, animationDuration duration: CFTimeInterval) {
-        //exec trigger
+        // exec trigger
         if triggerNode.name!.hasPrefix("trigCam_") {
             let cameraName = (triggerNode.name as NSString?)!.substring(from: 8)
             setActiveCamera(cameraName, animationDuration: duration)
         }
-        //action
+        // action
         if triggerNode.name!.hasPrefix("trigAction_") {
             if collectedKeys > 0 {
                 let actionName = (triggerNode.name as NSString?)!.substring(from: 11)
@@ -624,7 +630,7 @@ class GameController: NSObject, ExtraProtocols {
             lastTrigger = triggerNode
 
             // the very first trigger should not animate (initial camera position)
-            execTrigger(triggerNode, animationDuration: firstTriggerDone ? GameController.DefaultCameraTransitionDuration: 0)
+            execTrigger(triggerNode, animationDuration: firstTriggerDone ? GameController.DefaultCameraTransitionDuration : 0)
             firstTriggerDone = true
         }
     }
@@ -635,7 +641,7 @@ class GameController: NSObject, ExtraProtocols {
         let pathCurve: Float = 0.4
 
         // update pandas
-        for i in 0..<friendCount {
+        for i in 0 ..< friendCount {
             let friend = friends[i]
 
             var pos = friend.simdPosition
@@ -651,12 +657,12 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func animateFriends() {
-            //animations
+        // animations
         let walkAnimation = Character.loadAnimation(fromSceneNamed: "Art.scnassets/character/max_walk.scn")
 
         SCNTransaction.begin()
-        for i in 0..<friendCount {
-            //unsynchronize
+        for i in 0 ..< friendCount {
+            // unsynchronize
             let walk = walkAnimation.copy() as! SCNAnimationPlayer
             walk.speed = CGFloat(friendsSpeed[i])
             friends[i].addAnimationPlayer(walk, forKey: "walk")
@@ -664,7 +670,7 @@ class GameController: NSObject, ExtraProtocols {
         }
         SCNTransaction.commit()
     }
-    
+
     func addFriends(_ count: Int) {
         var count = count
         if count + friendCount > GameController.NumberOfFiends {
@@ -698,10 +704,10 @@ class GameController: NSObject, ExtraProtocols {
         geometries[2].firstMaterial = geometries[2].firstMaterial?.copy() as? SCNMaterial
         geometryNode.geometry?.firstMaterial?.diffuse.contents = "Art.scnassets/character/max_diffuseD.png"
 
-        //remove physics from our friends
-        friendModel.enumerateHierarchy({(_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) -> Void in
+        // remove physics from our friends
+        friendModel.enumerateHierarchy { (_ node: SCNNode, _ _: UnsafeMutablePointer<ObjCBool>) in
             node.physicsBody = nil
-        })
+        }
 
         let friendPosition = simd_make_float3(-5.84, -0.75, 3.354)
         let FRIEND_AREA_LENGTH: Float = 5.0
@@ -714,23 +720,24 @@ class GameController: NSObject, ExtraProtocols {
             scene!.rootNode.addChildNode(friendsNode!)
         }
 
-        //animations
+        // animations
         let idleAnimation = Character.loadAnimation(fromSceneNamed: "Art.scnassets/character/max_idle.scn")
-        for _ in 0..<count {
+        for _ in 0 ..< count {
             let friend = friendModel.clone()
 
-            //replace texture
+            // replace texture
             let geometryIndex = Int(arc4random_uniform(UInt32(3)))
             guard let geometryNode = friend.childNode(withName: "Max", recursively: true) else { return }
             geometryNode.geometry = geometries[geometryIndex]
 
-            //place our friend
+            // place our friend
             friend.simdPosition = simd_make_float3(
                 friendPosition.x + (1.4 * (Float(arc4random_uniform(UInt32(RAND_MAX))) / Float(RAND_MAX)) - 0.5),
                 friendPosition.y,
-                friendPosition.z - (FRIEND_AREA_LENGTH * (Float(arc4random_uniform(UInt32(RAND_MAX))) / Float(RAND_MAX))))
+                friendPosition.z - (FRIEND_AREA_LENGTH * (Float(arc4random_uniform(UInt32(RAND_MAX))) / Float(RAND_MAX)))
+            )
 
-            //unsynchronize
+            // unsynchronize
             let idle = (idleAnimation.copy() as! SCNAnimationPlayer)
             idle.speed = CGFloat(Float(1.5) + Float(1.5) * Float(arc4random_uniform(UInt32(RAND_MAX))) / Float(RAND_MAX))
 
@@ -738,16 +745,16 @@ class GameController: NSObject, ExtraProtocols {
             idle.play()
             friendsNode?.addChildNode(friend)
 
-            self.friendsSpeed[friendCount] = Float(idle.speed)
-            self.friends[friendCount] = friend
-            self.friendCount += 1
+            friendsSpeed[friendCount] = Float(idle.speed)
+            friends[friendCount] = friend
+            friendCount += 1
         }
 
-        for i in 0..<friendCount {
+        for i in 0 ..< friendCount {
             ensureNoPenetrationOfIndex(i)
         }
     }
-    
+
     // iterates on every friend and move them if they intersect friend at index i
     func ensureNoPenetrationOfIndex(_ index: Int) {
         var pos = friends[index].simdPosition
@@ -755,12 +762,12 @@ class GameController: NSObject, ExtraProtocols {
         // ensure no penetration
         let pandaRadius: Float = 0.15
         let pandaDiameter = pandaRadius * 2.0
-        for j in 0..<friendCount {
+        for j in 0 ..< friendCount {
             if j == index {
                 continue
             }
 
-            let otherPos = float3(friends[j].position)
+            let otherPos = SIMD3<Float>(friends[j].position)
             let v = otherPos - pos
             let dist = simd_length(v)
             if dist < pandaDiameter {
@@ -770,7 +777,7 @@ class GameController: NSObject, ExtraProtocols {
             }
         }
 
-        //ensure within the box X[-6.662 -4.8] Z<3.354
+        // ensure within the box X[-6.662 -4.8] Z<3.354
         if friends[index].position.z <= 3.354 {
             pos.x = max(pos.x, -6.662)
             pos.x = min(pos.x, -4.8)
@@ -781,38 +788,38 @@ class GameController: NSObject, ExtraProtocols {
     // MARK: - Game actions
 
     func unlockDoor() {
-        if friendsAreFree {  //already unlocked
+        if friendsAreFree { // already unlocked
             return
         }
 
-        startCinematic()  //pause the scene
+        startCinematic() // pause the scene
 
-        //play sound
+        // play sound
         playSound(AudioSourceKind.unlockDoor)
 
-        //cinematic02
+        // cinematic02
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.0
-        SCNTransaction.completionBlock = {() -> Void in
-            //trigger particles
+        SCNTransaction.completionBlock = { () in
+            // trigger particles
             let door: SCNNode? = self.scene!.rootNode.childNode(withName: "door", recursively: true)
             let particle_door: SCNNode? = self.scene!.rootNode.childNode(withName: "particles_door", recursively: true)
             self.addParticles(with: .unlockDoor, withTransform: particle_door!.worldTransform)
 
-            //audio
+            // audio
             self.playSound(.collectBig)
 
-            //add friends
+            // add friends
             SCNTransaction.begin()
             SCNTransaction.animationDuration = 0.0
             self.addFriends(GameController.NumberOfFiends)
             SCNTransaction.commit()
 
-            //open the door
+            // open the door
             SCNTransaction.begin()
             SCNTransaction.animationDuration = 1.0
-            SCNTransaction.completionBlock = {() -> Void in
-                //animate characters
+            SCNTransaction.completionBlock = { () in
+                // animate characters
                 self.animateFriends()
 
                 // update state
@@ -820,9 +827,9 @@ class GameController: NSObject, ExtraProtocols {
 
                 // show end screen
                 DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() +
-                    Double(Int64(1.0 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC), execute: {() -> Void in
-                    self.showEndScreen()
-                })
+                    Double(Int64(1.0 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) { () in
+                        self.showEndScreen()
+                    }
             }
             door!.opacity = 0.0
             SCNTransaction.commit()
@@ -839,26 +846,26 @@ class GameController: NSObject, ExtraProtocols {
         // get the key node
         let key: SCNNode? = scene!.rootNode.childNode(withName: "key", recursively: true)
 
-        //sound fx
+        // sound fx
         playSound(AudioSourceKind.collectBig)
 
-        //particles
+        // particles
         addParticles(with: .keyApparition, withTransform: key!.worldTransform)
 
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 1.0
-        SCNTransaction.completionBlock = {() -> Void in
+        SCNTransaction.completionBlock = { () in
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() +
-                Double(Int64(2.5 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC), execute: {() -> Void in
-                self.keyDidAppear()
-            })
+                Double(Int64(2.5 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) { () in
+                    self.keyDidAppear()
+                }
         }
         key!.opacity = 1.0 // show the key
         SCNTransaction.commit()
     }
 
     func keyDidAppear() {
-        execTrigger(lastTrigger!, animationDuration: 0.75) //revert to previous camera
+        execTrigger(lastTrigger!, animationDuration: 0.75) // revert to previous camera
         stopCinematic()
     }
 
@@ -867,7 +874,7 @@ class GameController: NSObject, ExtraProtocols {
 
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 0.0
-        SCNTransaction.completionBlock = {() -> Void in
+        SCNTransaction.completionBlock = { () in
             self.showKey()
         }
         setActiveCamera("CameraCinematic01", animationDuration: 3.0)
@@ -876,40 +883,39 @@ class GameController: NSObject, ExtraProtocols {
 
     func collect(_ collectable: SCNNode) {
         if collectable.physicsBody != nil {
-
-            //the Key
+            // the Key
             if collectable.name == "key" {
-                if !self.keyIsVisible { //key not visible yet
+                if !keyIsVisible { // key not visible yet
                     return
                 }
 
                 // play sound
                 playSound(AudioSourceKind.collect)
-                self.overlay?.didCollectKey()
+                overlay?.didCollectKey()
 
-                self.collectedKeys += 1
+                collectedKeys += 1
             }
 
-            //the gems
+            // the gems
             else if collectable.name == "CollectableBig" {
-                self.collectedGems += 1
+                collectedGems += 1
 
                 // play sound
                 playSound(AudioSourceKind.collect)
 
                 // update the overlay
-                self.overlay?.collectedGemsCount = self.collectedGems
+                overlay?.collectedGemsCount = collectedGems
 
-                if self.collectedGems == Overlay.Constants.gemsCount {
-                    //we collect a gem, show the key after 1 second
+                if collectedGems == Overlay.Constants.gemsCount {
+                    // we collect a gem, show the key after 1 second
                     DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() +
-                        Double(Int64(0.5 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC), execute: {() -> Void in
-                        self.keyShouldAppear()
-                    })
+                        Double(Int64(0.5 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)) { () in
+                            self.keyShouldAppear()
+                        }
                 }
             }
 
-            collectable.physicsBody = nil //not collectable anymore
+            collectable.physicsBody = nil // not collectable anymore
 
             // particles
             addParticles(with: .keyApparition, withTransform: collectable.worldTransform)
@@ -925,8 +931,8 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func controllerAttack() {
-        if !self.character!.isAttacking {
-            self.character!.attack()
+        if !character!.isAttacking {
+            character!.attack()
         }
     }
 
@@ -953,7 +959,7 @@ class GameController: NSObject, ExtraProtocols {
             cameraDirection.y = 0
         }
     }
-    
+
     // MARK: - Update
 
     func renderer(_ renderer: SCNSceneRenderer, updateAtTime time: TimeInterval) {
@@ -985,8 +991,7 @@ class GameController: NSObject, ExtraProtocols {
 
     // MARK: - contact delegate
 
-    func physicsWorld(_ world: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
-
+    func physicsWorld(_: SCNPhysicsWorld, didBegin contact: SCNPhysicsContact) {
         // triggers
         if contact.nodeA.physicsBody!.categoryBitMask == Bitmask.trigger.rawValue {
             trigger(contact.nodeA)
@@ -1011,9 +1016,9 @@ class GameController: NSObject, ExtraProtocols {
         guard let victoryMusic = SCNAudioSource(named: "audio/Music_victory.mp3") else { return }
         victoryMusic.volume = 0.5
 
-        self.scene?.rootNode.addAudioPlayer(SCNAudioPlayer(source: victoryMusic))
+        scene?.rootNode.addAudioPlayer(SCNAudioPlayer(source: victoryMusic))
 
-        self.overlay?.showEndScreen()
+        overlay?.showEndScreen()
     }
 
     // MARK: - Configure rendering quality
@@ -1028,8 +1033,8 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func turnOffEXR() {
-        self.turnOffEXRForMAterialProperty(property: scene!.background)
-        self.turnOffEXRForMAterialProperty(property: scene!.lightingEnvironment)
+        turnOffEXRForMAterialProperty(property: scene!.background)
+        turnOffEXRForMAterialProperty(property: scene!.lightingEnvironment)
 
         scene?.rootNode.enumerateChildNodes { (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
             if let materials = child.geometry?.materials {
@@ -1041,42 +1046,42 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func turnOffNormalMaps() {
-        scene?.rootNode.enumerateChildNodes({ (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
+        scene?.rootNode.enumerateChildNodes { (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
             if let materials = child.geometry?.materials {
                 for material in materials {
                     material.normal.contents = SKColor.black
                 }
             }
-        })
+        }
     }
 
     func turnOffHDR() {
-        scene?.rootNode.enumerateChildNodes({ (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
+        scene?.rootNode.enumerateChildNodes { (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
             child.camera?.wantsHDR = false
-        })
+        }
     }
 
     func turnOffDepthOfField() {
-        scene?.rootNode.enumerateChildNodes({ (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
+        scene?.rootNode.enumerateChildNodes { (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
             child.camera?.wantsDepthOfField = false
-        })
+        }
     }
 
     func turnOffSoftShadows() {
-        scene?.rootNode.enumerateChildNodes({ (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
+        scene?.rootNode.enumerateChildNodes { (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
             if let lightSampleCount = child.light?.shadowSampleCount {
                 child.light?.shadowSampleCount = min(lightSampleCount, 1)
             }
-        })
+        }
     }
 
     func turnOffPostProcess() {
-        scene?.rootNode.enumerateChildNodes({ (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
+        scene?.rootNode.enumerateChildNodes { (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
             if let light = child.light {
                 light.shadowCascadeCount = 0
                 light.shadowMapSize = CGSize(width: 1024, height: 1024)
             }
-        })
+        }
     }
 
     func turnOffOverlay() {
@@ -1084,7 +1089,7 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func turnOffVertexShaderModifiers() {
-        scene?.rootNode.enumerateChildNodes({ (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
+        scene?.rootNode.enumerateChildNodes { (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
             if var shaderModifiers = child.geometry?.shaderModifiers {
                 shaderModifiers[SCNShaderModifierEntryPoint.geometry] = nil
                 child.geometry?.shaderModifiers = shaderModifiers
@@ -1097,33 +1102,31 @@ class GameController: NSObject, ExtraProtocols {
                     material.shaderModifiers = shaderModifiers
                 }
             }
-        })
+        }
     }
 
     func turnOffVegetation() {
-        scene?.rootNode.enumerateChildNodes({ (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
+        scene?.rootNode.enumerateChildNodes { (child: SCNNode, _: UnsafeMutablePointer<ObjCBool>) in
             guard let materialName = child.geometry?.firstMaterial?.name as NSString? else { return }
             if materialName.hasPrefix("plante") {
                 child.isHidden = true
             }
-        })
+        }
     }
 
-    func configureRenderingQuality(_ view: SCNView) {
-        
-#if os( tvOS )
-    self.turnOffEXR()  //tvOS doesn't support exr maps
-    // the following things are done for low power device(s) only
-    self.turnOffNormalMaps()
-    self.turnOffHDR()
-    self.turnOffDepthOfField()
-    self.turnOffSoftShadows()
-    self.turnOffPostProcess()
-    self.turnOffOverlay()
-    self.turnOffVertexShaderModifiers()
-    self.turnOffVegetation()
-#endif
-
+    func configureRenderingQuality(_: SCNView) {
+        #if os(tvOS)
+            turnOffEXR() // tvOS doesn't support exr maps
+            // the following things are done for low power device(s) only
+            turnOffNormalMaps()
+            turnOffHDR()
+            turnOffDepthOfField()
+            turnOffSoftShadows()
+            turnOffPostProcess()
+            turnOffOverlay()
+            turnOffVertexShaderModifiers()
+            turnOffVegetation()
+        #endif
     }
 
     // MARK: - Debug menu
@@ -1138,10 +1141,10 @@ class GameController: NSObject, ExtraProtocols {
 
     func debugMenuSelectCameraAtIndex(_ index: Int) {
         if index == 0 {
-            let key = self.scene?.rootNode .childNode(withName: "key", recursively: true)
+            let key = scene?.rootNode.childNode(withName: "key", recursively: true)
             key?.opacity = 1.0
         }
-        self.setActiveCamera("CameraDof\(index)")
+        setActiveCamera("CameraDof\(index)")
     }
 
     // MARK: - GameController
@@ -1174,36 +1177,35 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func registerGameController(_ gameController: GCController) {
-
         var buttonA: GCControllerButtonInput?
         var buttonB: GCControllerButtonInput?
 
         if let gamepad = gameController.extendedGamepad {
-            self.gamePadLeft = gamepad.leftThumbstick
-            self.gamePadRight = gamepad.rightThumbstick
+            gamePadLeft = gamepad.leftThumbstick
+            gamePadRight = gamepad.rightThumbstick
             buttonA = gamepad.buttonA
             buttonB = gamepad.buttonB
         } else if let gamepad = gameController.gamepad {
-            self.gamePadLeft = gamepad.dpad
+            gamePadLeft = gamepad.dpad
             buttonA = gamepad.buttonA
             buttonB = gamepad.buttonB
         } else if let gamepad = gameController.microGamepad {
-            self.gamePadLeft = gamepad.dpad
+            gamePadLeft = gamepad.dpad
             buttonA = gamepad.buttonA
             buttonB = gamepad.buttonX
         }
 
         weak var weakController = self
 
-        gamePadLeft!.valueChangedHandler = {(_ dpad: GCControllerDirectionPad, _ xValue: Float, _ yValue: Float) -> Void in
+        gamePadLeft!.valueChangedHandler = { (_: GCControllerDirectionPad, _ xValue: Float, _ yValue: Float) in
             guard let strongController = weakController else {
                 return
             }
             strongController.characterDirection = simd_make_float2(xValue, -yValue)
         }
 
-        if let gamePadRight = self.gamePadRight {
-            gamePadRight.valueChangedHandler = {(_ dpad: GCControllerDirectionPad, _ xValue: Float, _ yValue: Float) -> Void in
+        if let gamePadRight = gamePadRight {
+            gamePadRight.valueChangedHandler = { (_: GCControllerDirectionPad, _ xValue: Float, _ yValue: Float) in
                 guard let strongController = weakController else {
                     return
                 }
@@ -1211,79 +1213,80 @@ class GameController: NSObject, ExtraProtocols {
             }
         }
 
-        buttonA?.valueChangedHandler = {(_ button: GCControllerButtonInput, _ value: Float, _ pressed: Bool) -> Void in
+        buttonA?.valueChangedHandler = { (_: GCControllerButtonInput, _: Float, _ pressed: Bool) in
             guard let strongController = weakController else {
                 return
             }
             strongController.controllerJump(pressed)
         }
 
-        buttonB?.valueChangedHandler = {(_ button: GCControllerButtonInput, _ value: Float, _ pressed: Bool) -> Void in
+        buttonB?.valueChangedHandler = { (_: GCControllerButtonInput, _: Float, _: Bool) in
             guard let strongController = weakController else {
                 return
             }
             strongController.controllerAttack()
         }
 
-#if os( iOS )
-    if gamePadLeft != nil {
-            overlay!.hideVirtualPad()
-        }
-#endif
+        #if os(iOS)
+            if gamePadLeft != nil {
+                overlay!.hideVirtualPad()
+            }
+        #endif
     }
 
     func unregisterGameController() {
         gamePadLeft = nil
         gamePadRight = nil
         gamePadCurrent = nil
-#if os( iOS )
-        overlay!.showVirtualPad()
-#endif
+        #if os(iOS)
+            overlay!.showVirtualPad()
+        #endif
     }
 
-#if os( iOS )
-    // MARK: - PadOverlayDelegate
+    #if os(iOS)
 
-    func padOverlayVirtualStickInteractionDidStart(_ padNode: PadOverlay) {
-        if padNode == overlay!.controlOverlay!.leftPad {
-            characterDirection = float2(Float(padNode.stickPosition.x), -Float(padNode.stickPosition.y))
-        }
-        if padNode == overlay!.controlOverlay!.rightPad {
-            cameraDirection = float2( -Float(padNode.stickPosition.x), Float(padNode.stickPosition.y))
-        }
-    }
+        // MARK: - PadOverlayDelegate
 
-    func padOverlayVirtualStickInteractionDidChange(_ padNode: PadOverlay) {
-        if padNode == overlay!.controlOverlay!.leftPad {
-            characterDirection = float2(Float(padNode.stickPosition.x), -Float(padNode.stickPosition.y))
+        func padOverlayVirtualStickInteractionDidStart(_ padNode: PadOverlay) {
+            if padNode == overlay!.controlOverlay!.leftPad {
+                characterDirection = SIMD2<Float>(Float(padNode.stickPosition.x), -Float(padNode.stickPosition.y))
+            }
+            if padNode == overlay!.controlOverlay!.rightPad {
+                cameraDirection = SIMD2<Float>(-Float(padNode.stickPosition.x), Float(padNode.stickPosition.y))
+            }
         }
-        if padNode == overlay!.controlOverlay!.rightPad {
-            cameraDirection = float2( -Float(padNode.stickPosition.x), Float(padNode.stickPosition.y))
-        }
-    }
 
-    func padOverlayVirtualStickInteractionDidEnd(_ padNode: PadOverlay) {
-        if padNode == overlay!.controlOverlay!.leftPad {
-            characterDirection = [0, 0]
+        func padOverlayVirtualStickInteractionDidChange(_ padNode: PadOverlay) {
+            if padNode == overlay!.controlOverlay!.leftPad {
+                characterDirection = SIMD2<Float>(Float(padNode.stickPosition.x), -Float(padNode.stickPosition.y))
+            }
+            if padNode == overlay!.controlOverlay!.rightPad {
+                cameraDirection = SIMD2<Float>(-Float(padNode.stickPosition.x), Float(padNode.stickPosition.y))
+            }
         }
-        if padNode == overlay!.controlOverlay!.rightPad {
-            cameraDirection = [0, 0]
-        }
-    }
 
-    func willPress(_ button: ButtonOverlay) {
-        if button == overlay!.controlOverlay!.buttonA {
-            controllerJump(true)
+        func padOverlayVirtualStickInteractionDidEnd(_ padNode: PadOverlay) {
+            if padNode == overlay!.controlOverlay!.leftPad {
+                characterDirection = [0, 0]
+            }
+            if padNode == overlay!.controlOverlay!.rightPad {
+                cameraDirection = [0, 0]
+            }
         }
-        if button == overlay!.controlOverlay!.buttonB {
-            controllerAttack()
-        }
-    }
 
-    func didPress(_ button: ButtonOverlay) {
-        if button == overlay!.controlOverlay!.buttonA {
-            controllerJump(false)
+        func willPress(_ button: ButtonOverlay) {
+            if button == overlay!.controlOverlay!.buttonA {
+                controllerJump(true)
+            }
+            if button == overlay!.controlOverlay!.buttonB {
+                controllerAttack()
+            }
         }
-    }
-#endif
+
+        func didPress(_ button: ButtonOverlay) {
+            if button == overlay!.controlOverlay!.buttonA {
+                controllerJump(false)
+            }
+        }
+    #endif
 }

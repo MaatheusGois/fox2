@@ -1,13 +1,13 @@
 /*
  Copyright (C) 2018 Apple Inc. All Rights Reserved.
  See LICENSE.txt for this sample’s licensing information
- 
+
  Abstract:
  Exposes D-Pad game controller type functionality with screen-rendered buttons.
  */
 
-import SpriteKit
 import simd
+import SpriteKit
 
 protocol PadOverlayDelegate: NSObjectProtocol {
     func padOverlayVirtualStickInteractionDidStart(_ padNode: PadOverlay)
@@ -17,7 +17,7 @@ protocol PadOverlayDelegate: NSObjectProtocol {
 
 class PadOverlay: SKNode {
     // Default 100, 100
-    
+
     var size = CGSize.zero {
         didSet {
             if size != oldValue {
@@ -25,6 +25,7 @@ class PadOverlay: SKNode {
             }
         }
     }
+
     // Range [-1, 1]
     var stickPosition = CGPoint.zero {
         didSet {
@@ -33,6 +34,7 @@ class PadOverlay: SKNode {
             }
         }
     }
+
     weak var delegate: PadOverlayDelegate?
 
     private var trackingTouch: UITouch?
@@ -47,42 +49,43 @@ class PadOverlay: SKNode {
         isUserInteractionEnabled = true
         buildPad()
     }
-    
-    required init?(coder aDecoder: NSCoder) {
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
-    
+
     func buildPad() {
         let backgroundRect = CGRect(x: CGFloat(0), y: CGFloat(0), width: CGFloat(size.width), height: CGFloat(size.height))
         background = SKShapeNode()
-        background.path = CGPath( ellipseIn: backgroundRect, transform: nil )
+        background.path = CGPath(ellipseIn: backgroundRect, transform: nil)
         background.strokeColor = SKColor.black
         background.lineWidth = 3.0
         addChild(background)
         var stickRect = CGRect.zero
         stickRect.size = stickSize
         stick = SKShapeNode()
-        stick.path = CGPath( ellipseIn: stickRect, transform: nil)
+        stick.path = CGPath(ellipseIn: stickRect, transform: nil)
         stick.lineWidth = 2.0
-        //#if os( OSX )
+        // #if os( OSX )
         stick.fillColor = SKColor.white
-        //#endif
+        // #endif
         stick.strokeColor = SKColor.black
         addChild(stick)
         updateStickPosition()
     }
-    
+
     var stickSize: CGSize {
-        return CGSize( width: size.width / 3.0, height: size.height / 3.0)
+        return CGSize(width: size.width / 3.0, height: size.height / 3.0)
     }
 
     func updateForSizeChange() {
         guard let background = background else { return }
 
         let backgroundRect = CGRect(x: CGFloat(0), y: CGFloat(0), width: CGFloat(size.width), height: CGFloat(size.height))
-        background.path = CGPath( ellipseIn: backgroundRect, transform: nil)
+        background.path = CGPath(ellipseIn: backgroundRect, transform: nil)
         let stickRect = CGRect(x: CGFloat(0), y: CGFloat(0), width: CGFloat(size.width / 3.0), height: CGFloat(size.height / 3.0))
-        stick.path = CGPath( ellipseIn: stickRect, transform: nil)
+        stick.path = CGPath(ellipseIn: stickRect, transform: nil)
     }
 
     func updateStickPosition() {
@@ -93,13 +96,13 @@ class PadOverlay: SKNode {
     }
 
     func updateStickPosition(forTouchLocation location: CGPoint) {
-        var l_vec = vector_float2( x: Float( location.x - startLocation.x ), y: Float( location.y - startLocation.y ) )
-        l_vec.x = (l_vec.x / Float( size.width ) - 0.5) * 2.0
-        l_vec.y = (l_vec.y / Float( size.height ) - 0.5) * 2.0
+        var l_vec = vector_float2(x: Float(location.x - startLocation.x), y: Float(location.y - startLocation.y))
+        l_vec.x = (l_vec.x / Float(size.width) - 0.5) * 2.0
+        l_vec.y = (l_vec.y / Float(size.height) - 0.5) * 2.0
         if simd_length_squared(l_vec) > 1 {
             l_vec = simd_normalize(l_vec)
         }
-        stickPosition = CGPoint( x: CGFloat( l_vec.x ), y: CGFloat( l_vec.y ) )
+        stickPosition = CGPoint(x: CGFloat(l_vec.x), y: CGFloat(l_vec.y))
     }
 
     func resetInteraction() {
@@ -109,7 +112,7 @@ class PadOverlay: SKNode {
         delegate!.padOverlayVirtualStickInteractionDidEnd(self)
     }
 
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override func touchesBegan(_ touches: Set<UITouch>, with _: UIEvent?) {
         trackingTouch = touches.first
         startLocation = trackingTouch!.location(in: self)
         // Center start location
@@ -119,20 +122,20 @@ class PadOverlay: SKNode {
         delegate!.padOverlayVirtualStickInteractionDidStart(self)
     }
 
-    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override func touchesMoved(_ touches: Set<UITouch>, with _: UIEvent?) {
         if touches.contains(trackingTouch!) {
             updateStickPosition(forTouchLocation: trackingTouch!.location(in: self))
             delegate!.padOverlayVirtualStickInteractionDidChange(self)
         }
     }
 
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override func touchesEnded(_ touches: Set<UITouch>, with _: UIEvent?) {
         if touches.contains(trackingTouch!) {
             resetInteraction()
         }
     }
 
-    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+    override func touchesCancelled(_ touches: Set<UITouch>, with _: UIEvent?) {
         if touches.contains(trackingTouch!) {
             resetInteraction()
         }
