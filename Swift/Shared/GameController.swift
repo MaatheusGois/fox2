@@ -74,6 +74,7 @@ class GameController: NSObject, ExtraProtocols {
     //enemies
     private var enemy1: SCNNode?
     private var enemy2: SCNNode?
+    private var enemy3: SCNNode?
 
     //friends
     private var friends = [SCNNode](repeating: SCNNode(), count: NumberOfFiends)
@@ -290,6 +291,7 @@ class GameController: NSObject, ExtraProtocols {
     func setupEnemies() {
         self.enemy1 = self.scene?.rootNode.childNode(withName: "enemy1", recursively: true)
         self.enemy2 = self.scene?.rootNode.childNode(withName: "enemy2", recursively: true)
+        self.enemy3 = self.scene?.rootNode.childNode(withName: "enemy2", recursively: true)
 
         let gkScene = GKScene()
 
@@ -317,6 +319,7 @@ class GameController: NSObject, ExtraProtocols {
         let scaredEntity = GKEntity()
         gkScene.addEntity(scaredEntity)
         scaredEntity.addComponent(GKSCNNodeComponent(node: self.enemy2!))
+        scaredEntity.addComponent(GKSCNNodeComponent(node: self.enemy3!))
         let scared = ScaredComponent()
         scaredEntity.addComponent(scared)
         scared.player = playerComponent
@@ -334,6 +337,7 @@ class GameController: NSObject, ExtraProtocols {
 
         self.enemy1!.addAnimation(anim, forKey: "")
         self.enemy2!.addAnimation(anim, forKey: "")
+        self.enemy3!.addAnimation(anim, forKey: "")
 
         self.gkScene = gkScene
     }

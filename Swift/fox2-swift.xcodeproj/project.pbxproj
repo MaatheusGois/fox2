@@ -291,6 +291,7 @@
 			buildConfigurationList = 946C57251E92D88F00573562 /* Build configuration list for PBXNativeTarget "fox2-swift iOS" */;
 			buildPhases = (
 				946C56DD1E92D88E00573562 /* Sources */,
+				82401113286A4D31001D8AAB /* Formatter */,
 				946C56DE1E92D88E00573562 /* Frameworks */,
 				946C56DF1E92D88E00573562 /* Resources */,
 			);
@@ -368,6 +369,7 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
 				Base,
 			);
@@ -443,6 +445,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		82401113286A4D31001D8AAB /* Formatter */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = Formatter;
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		946C56DD1E92D88E00573562 /* Sources */ = {
