@@ -1,4 +1,8 @@
 {
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  },
   "layers" : [
     {
       "filename" : "Near.imagestacklayer"
@@ -15,9 +19,5 @@
     {
       "filename" : "Background.imagestacklayer"
     }
-  ],
-  "info" : {
-    "version" : 1,
-    "author" : "xcode"
-  }
+  ]
 }

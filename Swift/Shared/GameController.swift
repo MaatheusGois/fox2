@@ -45,6 +45,7 @@ enum AudioSourceKind: Int {
 }
 
 class GameController: NSObject, ExtraProtocols {
+
     // Global settings
     static let DefaultCameraTransitionDuration = 1.0
     static let NumberOfFiends = 100
@@ -72,9 +73,8 @@ class GameController: NSObject, ExtraProtocols {
     private var firstTriggerDone: Bool = false
 
     // enemies
-    private var enemy1: SCNNode?
-    private var enemy2: SCNNode?
-    private var enemy3: SCNNode?
+    private var enemiesChaser = [SCNNode?]()
+    private var enemiesScared = [SCNNode?]()
 
     // friends
     private var friends = [SCNNode](repeating: SCNNode(), count: NumberOfFiends)
@@ -293,10 +293,19 @@ class GameController: NSObject, ExtraProtocols {
         setActiveCamera("camLookAt_cameraGame", animationDuration: 0.0)
     }
 
+
     func setupEnemies() {
-        enemy1 = scene?.rootNode.childNode(withName: "enemy1", recursively: true)
-        enemy2 = scene?.rootNode.childNode(withName: "enemy2", recursively: true)
-        enemy3 = scene?.rootNode.childNode(withName: "enemy2", recursively: true)
+        func load(_ name: String) -> SCNNode? {
+            scene?.rootNode.childNode(
+                withName: name,
+                recursively: true
+            )
+        }
+
+        enemiesChaser.append(load("enemy0"))
+        enemiesChaser.append(load("enemy1"))
+        enemiesScared.append(load("enemy2"))
+        enemiesScared.append(load("enemy3"))
 
         let gkScene = GKScene()
 
@@ -311,24 +320,26 @@ class GameController: NSObject, ExtraProtocols {
         playerEntity.addComponent(playerComponent)
         playerComponent.positionAgentFromNode()
 
-        // Chaser
-        let chaserEntity = GKEntity()
-        gkScene.addEntity(chaserEntity)
-        chaserEntity.addComponent(GKSCNNodeComponent(node: enemy1!))
-        let chaser = ChaserComponent()
-        chaserEntity.addComponent(chaser)
-        chaser.player = playerComponent
-        chaser.positionAgentFromNode()
+        enemiesChaser.forEach { enemy in
+            let chaserEntity = GKEntity()
+            gkScene.addEntity(chaserEntity)
+            chaserEntity.addComponent(GKSCNNodeComponent(node: enemy!))
+            let chaser = ChaserComponent()
+            chaserEntity.addComponent(chaser)
+            chaser.player = playerComponent
+            chaser.positionAgentFromNode()
+        }
 
         // Scared
-        let scaredEntity = GKEntity()
-        gkScene.addEntity(scaredEntity)
-        scaredEntity.addComponent(GKSCNNodeComponent(node: enemy2!))
-        scaredEntity.addComponent(GKSCNNodeComponent(node: enemy3!))
-        let scared = ScaredComponent()
-        scaredEntity.addComponent(scared)
-        scared.player = playerComponent
-        scared.positionAgentFromNode()
+        enemiesScared.forEach { enemy in
+            let scaredEntity = GKEntity()
+            gkScene.addEntity(scaredEntity)
+            scaredEntity.addComponent(GKSCNNodeComponent(node: enemy!))
+            let scared = ScaredComponent()
+            scaredEntity.addComponent(scared)
+            scared.player = playerComponent
+            scared.positionAgentFromNode()
+        }
 
         // animate enemies (move up and down)
         let anim = CABasicAnimation(keyPath: "position")
@@ -340,9 +351,12 @@ class GameController: NSObject, ExtraProtocols {
         anim.duration = 1.2
         anim.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut)
 
-        enemy1!.addAnimation(anim, forKey: "")
-        enemy2!.addAnimation(anim, forKey: "")
-        enemy3!.addAnimation(anim, forKey: "")
+        enemiesChaser.forEach { enemy in
+            enemy?.addAnimation(anim, forKey: "")
+        }
+        enemiesScared.forEach { enemy in
+            enemy?.addAnimation(anim, forKey: "")
+        }
 
         self.gkScene = gkScene
     }
