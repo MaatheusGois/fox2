@@ -264,16 +264,13 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     func setupCamera() {
-        // The lookAtTarget node will be placed slighlty above the character using a constraint
-        weak var weakSelf = self
-
         lookAtTarget.constraints = [SCNTransformConstraint.positionConstraint(
-            inWorldSpace: true, with: { (_: SCNNode, _ position: SCNVector3) -> SCNVector3 in
-                guard let strongSelf = weakSelf else { return position }
+            inWorldSpace: true, with: { [weak self] (_: SCNNode, _ position: SCNVector3) ->  SCNVector3 in
+                guard let self = self else { return position }
 
-                guard var worldPosition = strongSelf.character?.node?.simdWorldPosition else { return position }
-                worldPosition.y = strongSelf.character!.baseAltitude + 0.5
-                return SCNVector3(worldPosition)
+                guard var position = self.character?.node?.simdWorldPosition else { return position }
+                position.y = self.character!.baseAltitude + 0.5
+                return SCNVector3(position)
             }
         )]
 
@@ -330,7 +327,6 @@ class GameController: NSObject, ExtraProtocols {
             chaser.positionAgentFromNode()
         }
 
-        // Scared
         enemiesScared.forEach { enemy in
             let scaredEntity = GKEntity()
             gkScene.addEntity(scaredEntity)
