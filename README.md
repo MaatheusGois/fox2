@@ -2,6 +2,8 @@
 
 Scene Kit sample code that was demonstrated at WWDC 2017.
 
+![Screen Shot 2022-07-21 at 08 49 12](https://user-images.githubusercontent.com/31082311/180206742-b6459f95-046a-41b1-ba78-633d6e37446b.png)
+
 ## Overview
 
 This sample code demonstrates the following Scene Kit features that were added in iOS 11, tvOS 11, and macOS 10.13:
