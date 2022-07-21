@@ -181,6 +181,7 @@ class GameController: NSObject, ExtraProtocols {
         let transformNode = SCNNode()
         let orientationUpdateConstraint = SCNTransformConstraint(inWorldSpace: true) { (_ node: SCNNode, _ transform: SCNMatrix4) -> SCNMatrix4 in
             guard let strongSelf = weakSelf else { return transform }
+
             if strongSelf.activeCamera != node {
                 return transform
             }
@@ -200,13 +201,13 @@ class GameController: NSObject, ExtraProtocols {
             let characterWorldUp = strongSelf.character?.node?.presentation.simdWorldUp
 
             transformNode.transform = transform
-
             let q = simd_mul(
                 simd_quaternion(GameController.CameraOrientationSensitivity * cameraDirection.x, characterWorldUp!),
                 simd_quaternion(GameController.CameraOrientationSensitivity * cameraDirection.y, transformNode.simdWorldRight)
             )
 
             transformNode.simdRotate(by: q, aroundTarget: targetPosition)
+
             return transformNode.transform
         }
 
@@ -415,7 +416,6 @@ class GameController: NSObject, ExtraProtocols {
     }
 
     // MARK: - Camera transitions
-
     // transition to the specified camera
     // this method will reparent the main camera under the camera named "cameraNamed"
     // and trigger the animation to smoothly move from the current position to the new position
@@ -966,7 +966,7 @@ class GameController: NSObject, ExtraProtocols {
             if l > 1.0 {
                 cameraDirection *= 1 / l
             }
-            cameraDirection.y = 0
+//            cameraDirection.y = 0
         }
     }
 

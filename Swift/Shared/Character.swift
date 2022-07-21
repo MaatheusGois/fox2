@@ -101,6 +101,8 @@ class Character: NSObject {
     var isJump: Bool = false
     var direction = SIMD2<Float>()
     var physicsWorld: SCNPhysicsWorld?
+    var isReseted = false
+
 
     // MARK: - Initialization
 
@@ -568,6 +570,7 @@ class Character: NSObject {
     func resetCharacterPosition() {
         characterNode.simdPosition = Character.initialPosition
         downwardAcceleration = 0
+        isReseted = true
     }
 
     // MARK: enemy
@@ -592,6 +595,7 @@ class Character: NSObject {
                 ]), count: 4),
             ]))
         }
+        queueResetCharacterPosition()
     }
 
     // MARK: utils
