@@ -266,7 +266,7 @@ class GameController: NSObject, ExtraProtocols {
 
     func setupCamera() {
         lookAtTarget.constraints = [SCNTransformConstraint.positionConstraint(
-            inWorldSpace: true, with: { [weak self] (_: SCNNode, _ position: SCNVector3) ->  SCNVector3 in
+            inWorldSpace: true, with: { [weak self] (_: SCNNode, _ position: SCNVector3) -> SCNVector3 in
                 guard let self = self else { return position }
 
                 guard var position = self.character?.node?.simdWorldPosition else { return position }
@@ -290,7 +290,6 @@ class GameController: NSObject, ExtraProtocols {
 
         setActiveCamera("camLookAt_cameraGame", animationDuration: 0.0)
     }
-
 
     func setupEnemies() {
         func load(_ name: String) -> SCNNode? {
@@ -346,7 +345,7 @@ class GameController: NSObject, ExtraProtocols {
         anim.repeatCount = .infinity
         anim.autoreverses = true
         anim.duration = 1.2
-        anim.timingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut)
+        anim.timingFunction = .init(name: "easeInEaseOut")
 
         enemiesChaser.forEach { enemy in
             enemy?.addAnimation(anim, forKey: "")
@@ -447,7 +446,7 @@ class GameController: NSObject, ExtraProtocols {
         // now animate the transform to identity to smoothly move to the new desired position
         SCNTransaction.begin()
         SCNTransaction.animationDuration = duration
-        SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: CAMediaTimingFunctionName.easeInEaseOut)
+        SCNTransaction.animationTimingFunction = .init(name: "easeInEaseOut")
         cameraNode.transform = SCNMatrix4Identity
 
         if let cameraTemplate = camera.camera {
